@@ -6,7 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.servise';
 export class UserService {
 	constructor(private readonly prismaService: PrismaService) { }
 
-	async findAll() {
+	async findAll(): Promise<Omit<User, 'password'>[]> {
 		const users = await this.prismaService.user.findMany();
 
 		if (users.length === 0) {
@@ -21,7 +21,7 @@ export class UserService {
 		return usersWithoutPassword;
 	}
 
-	async findById(id: number) {
+	async findById(id: number): Promise<Omit<User, 'password'>> {
 		const user = await this.prismaService.user.findUnique({
 			where: {
 				id,

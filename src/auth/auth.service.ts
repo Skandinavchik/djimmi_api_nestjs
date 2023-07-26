@@ -5,16 +5,17 @@ import { genSalt, hash, compare } from 'bcrypt';
 import { SignInDto, SignUpDto } from './dto/auth.dto';
 import { User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
+import { IAccessToken } from './types/auth.types';
 
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private readonly prismaService: PrismaService,
-		private readonly jwtService: JwtService
+		private readonly jwtService: JwtService,
 	) { }
 
-	async signUp(signUpDto: SignUpDto): Promise<{ accessToken: string }> {
+	async signUp(signUpDto: SignUpDto): Promise<IAccessToken> {
 		try {
 			const salt = await genSalt(12);
 			const user = await this.prismaService.user.create({
@@ -37,7 +38,7 @@ export class AuthService {
 
 	}
 
-	async signIn(signInDto: SignInDto): Promise<{ accessToken: string }> {
+	async signIn(signInDto: SignInDto): Promise<IAccessToken> {
 		const user = await this.prismaService.user.findUnique({
 			where: {
 				email: signInDto.email
@@ -57,10 +58,12 @@ export class AuthService {
 	}
 
 	async signOut() {
-
+		return {
+			message: 'User signed out'
+		};
 	}
 
-	async signAccessToken(user: Omit<User, 'password'>): Promise<{ accessToken: string }> {
+	async signAccessToken(user: Omit<User, 'password'>): Promise<IAccessToken> {
 		const accessToken = await this.jwtService.signAsync({ user });
 
 		return {
