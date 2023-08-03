@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { User } from '@prisma/client';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 
-const cookieExtractor = function (req: Request) {
+const cookieExtractor = (req: Request) => {
 	let token: string = '';
 	if (req && req.cookies) {
 		token = req.cookies['accessToken'];
@@ -26,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 		});
 	}
 
-	validate(payload: Omit<User, 'password'>) {
+	validate(payload: any) {
 		return payload;
 	}
 }

@@ -6,6 +6,8 @@ import { SignInDto, SignUpDto } from './dto/auth.dto';
 import { User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { IAccessToken } from './types/auth.types';
+import { Response } from 'express';
+
 
 
 @Injectable()
@@ -15,7 +17,7 @@ export class AuthService {
 		private readonly jwtService: JwtService,
 	) { }
 
-	async signUp(signUpDto: SignUpDto): Promise<IAccessToken> {
+	async signUp(res: Response, signUpDto: SignUpDto): Promise<IAccessToken> {
 		try {
 			const salt = await genSalt(12);
 			const user = await this.prismaService.user.create({
@@ -26,11 +28,16 @@ export class AuthService {
 				},
 			});
 
-			const { password, ...userWithoutPassword } = user;
-			return this.signAccessToken(userWithoutPassword);
+			res.cookie('accessToken', (await this.signAccessToken(user)).accessToken, {
+				maxAge: 14 * 24 * 60 * 60 * 1000,
+				httpOnly: true,
+			});
+
+			return await this.signAccessToken(user);
 
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
+				console.log('aaa');
 				throw new BadRequestException('User with this email already exists');
 			}
 			console.log(error);
@@ -38,10 +45,10 @@ export class AuthService {
 
 	}
 
-	async signIn(signInDto: SignInDto): Promise<IAccessToken> {
+	async signIn(res: Response, signInDto: SignInDto): Promise<IAccessToken> {
 		const user = await this.prismaService.user.findUnique({
 			where: {
-				email: signInDto.email
+				email: signInDto.email,
 			}
 		});
 
@@ -49,22 +56,35 @@ export class AuthService {
 			const isCorrectPassword = await compare(signInDto.password, user.password);
 
 			if (isCorrectPassword) {
-				const { password, ...userWithoutPassword } = user;
-				return this.signAccessToken(userWithoutPassword);
+				res.cookie('accessToken', (await this.signAccessToken(user)).accessToken, {
+					maxAge: 14 * 24 * 60 * 60 * 1000,
+					httpOnly: true,
+				});
+
+				return await this.signAccessToken(user);
 			}
 		}
 
 		throw new UnauthorizedException('Invalid email or password');
 	}
 
-	async signOut() {
+	async signOut(res: Response) {
+		res.clearCookie('accessToken', {
+			maxAge: 10,
+			httpOnly: true,
+		});
+
 		return {
-			message: 'User signed out'
+			message: 'User signed out',
 		};
 	}
 
-	async signAccessToken(user: Omit<User, 'password'>): Promise<IAccessToken> {
-		const accessToken = await this.jwtService.signAsync({ user });
+	async signAccessToken(user: User): Promise<IAccessToken> {
+		const { id, email, username } = user;
+		const accessToken = await this.jwtService.signAsync({ email }, {
+			subject: id,
+			issuer: username,
+		});
 
 		return {
 			accessToken,

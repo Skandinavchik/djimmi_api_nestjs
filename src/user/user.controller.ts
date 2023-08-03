@@ -16,11 +16,8 @@ export class UserController {
 		return this.userService.findAll();
 	}
 
-	@UseGuards(JwtAuthGuard)
 	@Get(':id')
-	async findById(@Param('id', ParseIntPipe) id: number): Promise<Omit<User, 'password'>> {
+	async findById(@Param('id') id: string): Promise<Omit<User, 'password'>> {
 		return this.userService.findById(id);
 	}
-
-
 }

@@ -21,7 +21,7 @@ export class UserService {
 		return usersWithoutPassword;
 	}
 
-	async findById(id: number): Promise<Omit<User, 'password'>> {
+	async findById(id: string): Promise<Omit<User, 'password'>> {
 		const user = await this.prismaService.user.findUnique({
 			where: {
 				id,

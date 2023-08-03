@@ -5,14 +5,15 @@ import { IAccessToken } from './types/auth.types';
 import { Response } from 'express';
 
 
+
 @Controller('auth')
 export class AuthController {
 	constructor(private readonly authService: AuthService) { }
 
 	@Post('signup')
 	@UsePipes(new ValidationPipe({ whitelist: true }))
-	async signUp(@Body() signUpDto: SignUpDto): Promise<IAccessToken> {
-		return await this.authService.signUp(signUpDto);
+	async signUp(@Res({ passthrough: true }) res: Response, @Body() signUpDto: SignUpDto): Promise<IAccessToken> {
+		return this.authService.signUp(res, signUpDto);
 	}
 
 
@@ -20,22 +21,12 @@ export class AuthController {
 	@UsePipes(new ValidationPipe({ whitelist: true }))
 	@HttpCode(200)
 	async signIn(@Res({ passthrough: true }) res: Response, @Body() signInDto: SignInDto): Promise<IAccessToken> {
-		res.cookie('accessToken', (await this.authService.signIn(signInDto)).accessToken, {
-			maxAge: 14 * 24 * 60 * 60 * 1000,
-			httpOnly: true,
-		});
-
-		return await this.authService.signIn(signInDto);
+		return this.authService.signIn(res, signInDto);
 	}
 
 	@Post('signout')
 	@HttpCode(200)
 	async signOut(@Res({ passthrough: true }) res: Response) {
-		res.clearCookie('accessToken', {
-			maxAge: 10,
-			httpOnly: true,
-		});
-
-		return await this.authService.signOut();
+		return await this.authService.signOut(res);
 	}
 }
